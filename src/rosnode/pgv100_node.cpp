@@ -69,6 +69,8 @@ int tag_detected_des = 0;
 double cal_err_x = 0;
 double cal_err_y = 0;
 double cal_err_ang = 0;
+bool control_code1_detect = false;
+bool control_code2_detect = false;
 
 int main(int argc, char **argv)
 {
@@ -163,10 +165,24 @@ ROS_INFO(" Direction set to <> No Lane Selected <>");
     string agv_c_lane_detect_str = agv_lane_detect_str.substr(11, 1);
     string agv_no_pos_str = agv_lane_detect_str.substr(5, 1);
     string tag_detected = agv_lane_detect_str.substr(7,1);
+    string control_code_detected_str1 = agv_lane_detect_str.substr(3,1); // control code 1 (CC1) 
+    string control_code_detected_str2 = agv_lane_detect_str.substr(0,1); // control code 2 (CC2) 
     int agv_c_lane_count_des = string2decimal(agv_c_lane_count_str);
     int agv_no_color_lane_des = string2decimal(agv_c_lane_detect_str);
     int agv_no_pos_des = string2decimal(agv_no_pos_str);
-    tag_detected_des = string2decimal(tag_detected); 
+    tag_detected_des = string2decimal(tag_detected);
+    if (string2decimal(control_code_detected_str1) == 1){
+      control_code1_detect = true;
+    }
+    else{
+      control_code1_detect = false;
+    }
+    if (string2decimal(control_code_detected_str2) == 1){
+      control_code2_detect = true;
+    }
+    else{
+      control_code2_detect = false;
+    }
 
     // Get the angle from the byte array [Byte 11-12]
     bitset<7> ang_1(read_buf[10]);
@@ -210,6 +226,8 @@ ROS_INFO(" Direction set to <> No Lane Selected <>");
     mesaj.no_color_lane = agv_no_color_lane_des;
     mesaj.no_pos = agv_no_pos_des;
     mesaj.tag_detected = tag_detected_des;
+    mesaj.control_code1_detected = control_code1_detect;
+    mesaj.control_code2_detected = control_code2_detect;
 
     pgv100_pub.publish(mesaj);
 
