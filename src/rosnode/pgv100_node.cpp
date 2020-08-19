@@ -259,7 +259,7 @@ ROS_INFO(" Direction set to <> Straight Ahead <>");
     pgv100_pub.publish(mesaj);
 
     ros::spinOnce();
-    //loop_rate.sleep();
+    loop_rate.sleep();
     sigaction(SIGINT, &sigIntHandler, NULL);
   }  
   return 0;
