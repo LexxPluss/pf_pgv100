@@ -129,10 +129,13 @@ if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {
 }   
 //////////////////////////////////////////////////
 
-selected_dir = "No lane is selected";
-write(serial_port,  dir_nolane , sizeof( dir_straight));  
-cout << endl;
-ROS_INFO(" Direction set to <> No Lane Selected <>");
+selected_dir = "Straight Ahead";
+write(serial_port,  dir_straight , sizeof( dir_straight));  
+
+ // sleep(1);
+ // char dir_buf [3];
+ // read(serial_port,  &dir_buf, 3);
+ROS_INFO(" Direction set to <> Straight Ahead <>");
   ros::init(argc, argv, "pgv100_node");
 //////////////////////////////////////////////////
 // ROS Node Declerations
@@ -153,9 +156,17 @@ ROS_INFO(" Direction set to <> No Lane Selected <>");
 
     write(serial_port, pos_req , 2);
     char read_buf [21];
+    // static unsigned char read_buf [21];
     memset(&read_buf, '\0', sizeof(read_buf));
     int byte_count = read(serial_port, &read_buf, sizeof(read_buf));
-    
+    //(void)read(serial_port, read_buf, 21);
+
+    // cout << "2: " << (int)read_buf[2] << endl;
+    // cout << "3: " << (int)read_buf[3] << endl;
+    // cout << "4: " << (int)read_buf[4] << endl;
+    // cout << "5: " << (int)read_buf[5] << endl;
+
+
     // Get Lane-Detection from the byte array [Bytes 1-2]
     bitset<7> lane_detect_byte1(read_buf[0]);
     bitset<7> lane_detect_byte0(read_buf[1]);
@@ -203,6 +214,8 @@ ROS_INFO(" Direction set to <> No Lane Selected <>");
       if (agv_x_pos_des > 2000.0) // this makes x-pos zero centered
         agv_x_pos_des = agv_x_pos_des - pow(2,24) - 1;
     }
+
+    
     
     // Get Y-Position from the byte array [Bytes 7-8]
     bitset<7> y_pos_1(read_buf[6]);
@@ -218,9 +231,23 @@ ROS_INFO(" Direction set to <> No Lane Selected <>");
 
     pf_pgv100::pgv_scan_data mesaj;
 
-    mesaj.angle = agv_ang_des - cal_err_ang;          // degree
-    mesaj.x_pos = (agv_x_pos_des - cal_err_x) / 10.0; // mm
-    mesaj.y_pos = (agv_y_pos_des - cal_err_y) / 10.0; // mm
+    unsigned int tmp;
+    float x;
+    tmp = read_buf[2];
+    tmp = (tmp << 7) | read_buf[3];
+    tmp = (tmp << 7) | read_buf[4];
+    tmp = (tmp << 7) | read_buf[5];
+    x = (float)tmp / 10000.0;
+    mesaj.x_pos = x; // [m]
+    cout << "tmp : " << (float)tmp << endl;
+    cout << "x : " << x <<endl;
+
+    // mesaj.angle = (agv_ang_des - cal_err_ang) * M_PI / 180;          // radian
+    // mesaj.x_pos = (agv_x_pos_des - cal_err_x) / 10000.0; // [m]
+    // mesaj.y_pos = (agv_y_pos_des - cal_err_y) / 10000.0; // [m]
+    mesaj.angle = agv_ang_des * M_PI / 180;          // radian
+    // mesaj.x_pos = agv_x_pos_des  / 10000.0; // [m]
+    mesaj.y_pos = agv_y_pos_des / 10000.0; // [m]
     mesaj.direction = selected_dir;
     mesaj.color_lane_count = agv_c_lane_count_des;
     mesaj.no_color_lane = agv_no_color_lane_des;
@@ -273,7 +300,7 @@ void direction_callback(const pf_pgv100::pgv_dir_msg::ConstPtr &msg)
   }
   else if (sub_direction.dir_command == 3)
   {
-    selected_dir = "Straigh Ahead";
+    selected_dir = "Straight Ahead";
     write(serial_port, dir_straight, sizeof(dir_straight));
   }
 }
