@@ -1,8 +1,8 @@
 <launch>
 
-    <node name="pgv100_node" pkg="pf_pgv100" type="pgv100_node" />
-
-
+    <node name="pgv100_node" pkg="pf_pgv100" type="pgv100_node">
+        <param name="serial_port" type="string" value="/dev/ttyUSB0"/>
+    </node>
 
 </launch>
 
