@@ -84,6 +84,21 @@ int main(int argc, char **argv)
     sigIntHandler.sa_flags = 0;
 //////////////////////////////////////////////////
 
+
+    ros::init(argc, argv, "pgv100_node");
+//////////////////////////////////////////////////
+// ROS Node Declerations
+//////////////////////////////////////////////////
+    ros::NodeHandle pub, sub;
+    ros::Publisher pgv100_pub = pub.advertise<pf_pgv100::pgv_scan_data>("pgv100_scan", 100); // second parameter is buffer
+    ros::Subscriber pgv_dir = sub.subscribe<pf_pgv100::pgv_dir_msg>("pgv_dir",100,direction_callback);
+    ros::Subscriber calibrate_sub = sub.subscribe<std_msgs::String>("calibrate",100, calibration_callback);
+    ros::Rate loop_rate(10);
+    string usb_name;
+    usb_name = pub.param<string>("pgv100_node/usb_name", "/dev/ttyUSB0"); // Either pub or sub seem to be fine here
+    serial_port = open(usb_name.c_str(), O_RDWR);
+
+
 // Check for errors
 if (serial_port < 0) {
     printf("Error %i from open: %s\n - Check your device is connected or not.\n", errno, strerror(errno));
@@ -136,15 +151,15 @@ write(serial_port,  dir_straight , sizeof( dir_straight));
  // char dir_buf [3];
  // read(serial_port,  &dir_buf, 3);
 ROS_INFO(" Direction set to <> Straight Ahead <>");
-  ros::init(argc, argv, "pgv100_node");
-//////////////////////////////////////////////////
-// ROS Node Declerations
-//////////////////////////////////////////////////
-  ros::NodeHandle pub, sub;
-  ros::Publisher pgv100_pub = pub.advertise<pf_pgv100::pgv_scan_data>("pgv100_scan", 100); // second parameter is buffer
-  ros::Subscriber pgv_dir = sub.subscribe<pf_pgv100::pgv_dir_msg>("pgv_dir",100,direction_callback);
-  ros::Subscriber calibrate_sub = sub.subscribe<std_msgs::String>("calibrate",100, calibration_callback);
-  ros::Rate loop_rate(10);
+//   ros::init(argc, argv, "pgv100_node");
+// //////////////////////////////////////////////////
+// // ROS Node Declerations
+// //////////////////////////////////////////////////
+//   ros::NodeHandle pub, sub;
+//   ros::Publisher pgv100_pub = pub.advertise<pf_pgv100::pgv_scan_data>("pgv100_scan", 100); // second parameter is buffer
+//   ros::Subscriber pgv_dir = sub.subscribe<pf_pgv100::pgv_dir_msg>("pgv_dir",100,direction_callback);
+//   ros::Subscriber calibrate_sub = sub.subscribe<std_msgs::String>("calibrate",100, calibration_callback);
+//   ros::Rate loop_rate(10);
 
   /**
    * A count of how many messages we have sent. This is used to create
