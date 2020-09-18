@@ -139,6 +139,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/pf_pgv100_node.cpp)
 add_executable(pgv100_node src/rosnode/pgv100_node.cpp)
 target_link_libraries(pgv100_node ${catkin_LIBRARIES})
+add_dependencies(pgv100_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 ## Rename C++ executable without prefix
