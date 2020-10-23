@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     ros::Publisher pgv100_pub = pub.advertise<pf_pgv100::pgv_scan_data>("pgv100_scan", 100); // second parameter is buffer
     ros::Subscriber pgv_dir = sub.subscribe<pf_pgv100::pgv_dir_msg>("pgv_dir",100,direction_callback);
     ros::Subscriber calibrate_sub = sub.subscribe<std_msgs::String>("calibrate",100, calibration_callback);
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(25);
     string usb_name;
     usb_name = pub.param<string>("pgv100_node/usb_name", "/dev/ttyUSB0"); // Either pub or sub seem to be fine here
     serial_port = open(usb_name.c_str(), O_RDWR);
@@ -166,27 +166,21 @@ ROS_INFO(" Direction set to <> Straight Ahead <>");
    * a unique string for each message.
    */
 
+  //write(serial_port, pos_req , 2);
+  //usleep(50*1000);
   while (ros::ok())
   {
-
-    write(serial_port, pos_req , 2);
     char read_buf [21];
     // static unsigned char read_buf [21];
+    write(serial_port, pos_req , 2);
     memset(&read_buf, '\0', sizeof(read_buf));
     int byte_count = read(serial_port, &read_buf, sizeof(read_buf));
     //(void)read(serial_port, read_buf, 21);
-
-    // cout << "2: " << (int)read_buf[2] << endl;
-    // cout << "3: " << (int)read_buf[3] << endl;
-    // cout << "4: " << (int)read_buf[4] << endl;
-    // cout << "5: " << (int)read_buf[5] << endl;
-
 
     // Get Lane-Detection from the byte array [Bytes 1-2]
     bitset<7> lane_detect_byte1(read_buf[0]);
     bitset<7> lane_detect_byte0(read_buf[1]);
     string agv_lane_detect_str = lane_detect_byte1.to_string() + lane_detect_byte0.to_string();
-    //cout << agv_lane_detect_str << endl;
     string agv_c_lane_count_str = agv_lane_detect_str.substr(8, 2);
     string agv_c_lane_detect_str = agv_lane_detect_str.substr(11, 1);
     string agv_no_pos_str = agv_lane_detect_str.substr(5, 1);
@@ -215,8 +209,17 @@ ROS_INFO(" Direction set to <> Straight Ahead <>");
     bitset<7> ang_0(read_buf[11]);
     string agv_ang_str = ang_1.to_string() + ang_0.to_string();
     agv_ang_des = string2decimal(agv_ang_str) / (10.0);
+#if 0
+    //cout << "pgv100 : " << agv_ang_des << endl;
     if (agv_ang_des > 180.0) // this makes x-pos zero centered
       agv_ang_des -= 360.0;
+#else
+    if(agv_ang_des < 180.0) {
+      agv_ang_des *= -1;
+    } else {
+      agv_ang_des = 360.0 - agv_ang_des;
+    }
+#endif
 
     // Get the X-Position from the byte array [Bytes 3-4-5-6]
     bitset<3> x_pos_3(read_buf[2]);
@@ -246,22 +249,20 @@ ROS_INFO(" Direction set to <> Straight Ahead <>");
 
     pf_pgv100::pgv_scan_data mesaj;
 
-    unsigned int tmp;
-    float x;
-    tmp = read_buf[2];
-    tmp = (tmp << 7) | read_buf[3];
-    tmp = (tmp << 7) | read_buf[4];
-    tmp = (tmp << 7) | read_buf[5];
-    x = (float)tmp / 10000.0;
-    mesaj.x_pos = x; // [m]
-    cout << "tmp : " << (float)tmp << endl;
-    cout << "x : " << x <<endl;
+    // unsigned int tmp;
+    // float x;
+    // tmp = read_buf[2];
+    // tmp = (tmp << 7) | read_buf[3];
+    // tmp = (tmp << 7) | read_buf[4];
+    // tmp = (tmp << 7) | read_buf[5];
+    // x = (float)tmp / 10000.0;
+    // mesaj.x_pos = x; // [m]
 
     // mesaj.angle = (agv_ang_des - cal_err_ang) * M_PI / 180;          // radian
     // mesaj.x_pos = (agv_x_pos_des - cal_err_x) / 10000.0; // [m]
     // mesaj.y_pos = (agv_y_pos_des - cal_err_y) / 10000.0; // [m]
     mesaj.angle = agv_ang_des * M_PI / 180;          // radian
-    // mesaj.x_pos = agv_x_pos_des  / 10000.0; // [m]
+    mesaj.x_pos = agv_x_pos_des / 10000.0; // [m]
     mesaj.y_pos = agv_y_pos_des / 10000.0; // [m]
     mesaj.direction = selected_dir;
     mesaj.color_lane_count = agv_c_lane_count_des;
@@ -273,8 +274,11 @@ ROS_INFO(" Direction set to <> Straight Ahead <>");
 
     pgv100_pub.publish(mesaj);
 
+    ROS_INFO("pgv100_node : %.3f, %.3f, %.3f", mesaj.x_pos, mesaj.y_pos, mesaj.angle);
     ros::spinOnce();
+    //write(serial_port, pos_req , 2);
     loop_rate.sleep();
+    //write(serial_port, pos_req , 2);
     sigaction(SIGINT, &sigIntHandler, NULL);
   }  
   return 0;
